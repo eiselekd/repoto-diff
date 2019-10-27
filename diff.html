@@ -1,0 +1,286 @@
+<!DOCTYPE HTML>
+<html>
+  <head>
+    <title>Compare menifests</title>
+    <script >
+      var defered_event_handler = [];
+      var register = [];
+      var shas_hash = {};
+    </script>
+    <script src="files/jquery-ui-1.12.1.custom/external/jquery/jquery.js"></script>
+    <script src="files/jquery-ui-1.12.1.custom/jquery-ui.js"></script>
+    <script src="files/jquery-treetable/jquery.treetable.js"></script>
+    <script src="diff.js"></script>
+    <link rel="stylesheet" type="text/css" href="diff.css">
+    <link rel="stylesheet" type="text/css" href="files/jquery-treetable/css/jquery.treetable.css">
+    <link rel="stylesheet" type="text/css" href="files/jquery-treetable/css/jquery.treetable.theme.default.css">
+    <link rel="stylesheet" type="text/css" href="http://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
+    <script type="text/javascript" charset="utf-8">
+      $(document).ready(function(){
+	  var obj_val = [[],[]];
+	  var obj_val_branch = [[],[]];
+	  var obj_val_rev = [[],[]];
+	  var obj_val_manifest = [[],[]];
+	  var obj_val_repolist = [undefined,undefined];
+	  var obj_val_repo = [[],[]];
+
+	  function update(e,v) {
+	      var r = Object.assign({},e);
+	      r = Object.assign(r,v);
+	      return r;
+	  }
+	  
+	  if ("WebSocket" in window) {
+	      ws = new WebSocket("ws://" + document.domain + ":5000/api");
+	      ws.onclose = function (msg) {
+		  alert("Connection lost, please reload\n");
+	      };
+	      ws.onmessage = function (msg) {
+		  var obj = JSON.parse(msg.data);
+		  console.log("> got reply");console.log(obj);
+		  if (obj.type == "md") {
+		      var idx = 0;
+		      $("#log").html("Manifest dirs<br><p>"+obj.data.join("<br>\n")+"</p>")
+		      $('#mrdir-0').empty();
+		      $('#mrdir-1').empty();
+		      for (const e of obj.data) {
+			  obj_val[idx] = e;
+			  $('#mrdir-0').append(new Option(e.repodir,[0,idx]));
+			  $('#mrdir-1').append(new Option(e.repodir,[1,idx]));
+			  idx += 1;
+		      }
+		      $("#mrdir-0, #mrdir-1").unbind("click");
+		      $("#mrdir-0, #mrdir-1").click(function() {
+			  var val = $(this).val().split(",");
+			  console.log(val);
+			  req = {'type': 'mdsel', 'data' : update(obj_val[val[1]],{'id':val[0]}) }
+			  ws.send(JSON.stringify(req));
+			  req.dir = "send request mrbsel";
+			  console.log(req);
+		      });
+		  } else if (obj.type == "mrbranches") {
+		      var idx = 0;
+		      $("#log").html("Manifest repo branches<br><p>"+obj.data.join("<br>\n")+"</p>")
+		      var id = obj.id;
+		      var n = '#mrbranches-' + id;
+		      $(n).empty();
+		      for (const e of obj.data) {
+			  obj_val_branch[id][idx] = e;
+			  $(n).append(new Option(e.mrb,[id,idx]));
+			  idx += 1;
+		      }
+		      $(n).unbind("click");
+		      $(n).click(function() {
+			  var val = $(this).val().split(",");
+			  console.log(val);
+			  req = {'type': 'mrbsel', 'data' : update(obj_val_branch[val[0]][val[1]], {'id':val[0]}) }
+			  ws.send(JSON.stringify(req));
+			  req.dir = "send request mrbsel";
+			  console.log(req);
+		      });
+		  } else if (obj.type == "mrrevs") {
+		      var idx = 0;
+		      $("#log").html("Manifest repo revisions<br><p>"+obj.data.join("<br>\n")+"</p>")
+		      var id = obj.id;
+		      var n = '#mrrev-' + id;
+		      $(n).empty();
+		      for (const e of obj.data) {
+			  obj_val_rev[id][idx] = e;
+			  $(n).append(new Option(e.summary,[id,idx]));
+			  idx += 1;
+		      }
+		      $(n).unbind("click");
+		      $(n).click(function() {
+			  var val = $(this).val().split(",");
+			  console.log(val);
+			  req = {'type': 'mrrevsel', 'data' : update(obj_val_rev[val[0]][val[1]], {'id':val[0]}) }
+			  ws.send(JSON.stringify(req));
+			  req.dir = "send request mrrev";
+			  console.log(req);
+		      });
+		  } else if (obj.type == "manifestfiles") {
+		      $("#log").html("manifests files<br><p>"+obj.data.join("<br>\n")+"</p>")
+		      var id = obj.id;
+		      var n = '#manifestfiles-' + id;
+		      var idx = 0;
+		      $(n).empty();
+		      for (const e of obj.data) {
+			  obj_val_manifest[id][idx] = e;
+			  $(n).append(new Option(e.mfn,[id,idx]));
+			  idx += 1;
+		      };
+		      $(n).unbind("click");
+		      $(n).click(function() {
+			  var val = $(this).val().split(",");
+			  /* select current manifest */
+			  manifest = obj_val_manifest[val];
+			  req = {'type': 'mfnsel', 'data' : update(obj_val_manifest[val[0]][val[1]], {'id':val[0]}) }
+			  ws.send(JSON.stringify(req));
+			  req.dir = "send request mfnsel";
+			  console.log(req);
+		      });
+		  } else if (obj.type == "repolist") {
+		      $("#log").html("repolist<br><p>"+obj.data.join("<br>\n")+"</p>")
+		      var id = obj.id;
+		      obj_val_repolist[id] = obj;
+		      if (obj_val_repolist[0] != undefined &&
+			  obj_val_repolist[1] != undefined ) {
+
+			  function createprojhirarchy(projects) {
+			      var rootvar = new pathvar({'n':'root','path':'root'});
+			      var root = [
+				  new pathvar({'n':'by-path','path':'by-path',
+					       'c':[]})
+			      ];
+			      for (var e of projects.data) {
+				  var p = new repovar(e);
+
+				  (function(id,p,e) {
+				      obj_val_repo[id][e.path] = p;
+				      p.events['onoff'] = function (o) {
+					  o['onoff'] = $(this).prop('checked') ? "on" : "off";
+					  req = {'type': 'repoonoff', 'data' : update(o,{})};
+					  ws.send(JSON.stringify(req));
+					  req.dir = "send request repo onof: " + o['onoff'];
+					  console.log(req);
+				      };
+				  })(id,p,e);
+				  
+				  var path = p['path'];
+				  var na = path.split("/");
+				  threadpath(root[0].c, na, p,['by-path']);
+			      }
+			      return root;
+			  }
+
+			  var h_a = createprojhirarchy(obj_val_repolist[0]);
+			  var h_b = createprojhirarchy(obj_val_repolist[1]);
+			  var h_d = diffhirarchy(h_a, h_b, [], register);
+
+			  defered_event_handler = [];
+			  
+			  var treear = new gen_tree('root');
+			  treear.genar(h_d);
+
+			  var p = treear.html();
+			  $("#repolist").empty();
+			  $("#repolist").append(p);
+			  $("#repolist").treetable({ expandable: true },1);
+			  $("#repolist").treetable("expandAll");
+			  $(".repoelem").hide();
+			  treeCodeClickSetup();
+			  
+			  for (const e of defered_event_handler) {
+			      $("#"+e[0]).bind(e[1],e[2]);
+			  }
+			  
+		      }
+		  } else if (obj.type == "repodiff") {
+		      var id = obj.data.path;
+		      id = id.replace(/[\/\s\.@:\-]/ig, "_");
+		      var pid = $("#"+id).attr('data-tt-id');
+
+		      function genList(a) {
+			  var c = []
+			  for (var i of a) {
+			      var line = "<li><span >" + i.sha + ":" + i.summary +"  </span></li>";
+			      c.push(line);
+			  }
+			  var l = c.join("\n");
+			  var m = "<ul>" + l + "</ul>";
+			  return m;
+		      }
+		      
+		      if ($("#diffview-"+id).length == 0) {
+			  var node = $("#repolist").treetable("node", pid);
+			  var removed = genList(obj.data.rem);
+			  var added = genList(obj.data.add);
+			  $("#repolist").treetable("loadBranch", node,
+						   "<tr id=\"diffview-"+id+"\" data-tt-id='"+globalIdnext()+"' data-tt-parent-id='"+pid+"'>"+
+						   "<td></td><td></td><td>"+removed+"</td><td>"+added+"</td></tr>");
+		      }
+
+		      
+		  }
+		  
+	      };
+	      ws.onopen = function () {
+		  ws.send(JSON.stringify({'type': 'start'}));
+	      }
+
+	  } else {
+	      alert("WebSocket not supported");
+	  }
+
+      });
+    </script>
+  </head>
+  <body>
+    <table>
+      <tr>
+	<th></th>
+	<th>Version A</th>
+	<th>Version B</th>
+      </tr>
+      <tr>
+	<td>
+	  <span class="diffspan">Manifest dir</span>
+	</td>
+	<td>
+	  <select id="mrdir-0" class="diffselectbox"></select>
+	</td>
+	<td>
+	  <select id="mrdir-1" class="diffselectbox"></select>
+	</td>
+      </tr>
+      <tr>
+	<td>
+	  <span class="diffspan">Manifest repo branch:</span>
+	</td>
+	<td>
+	  <select id="mrbranches-0" class="diffselectbox"></select>
+	</td>
+	<td>
+	  <select id="mrbranches-1" class="diffselectbox"></select>
+	</td>
+      </tr>
+      <tr>
+	<td>
+	  <span class="diffspan">Manifest repo sha:</span>
+	</td>
+	<td>
+	  <select id="mrrev-0" class="diffselectbox"></select>
+	</td>
+	<td>
+	  <select id="mrrev-1" class="diffselectbox"></select>
+	</td>
+      </tr>
+      <tr>
+	<td>
+	  <span class="diffspan">Manifest file&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:</span>
+	</td>
+	<td>
+	  <select id="manifestfiles-0" class="diffselectbox"></select>
+	</td>
+	<td>
+	  <select id="manifestfiles-1" class="diffselectbox"></select>
+	</td>
+      </tr>
+    </table>
+
+    <!--
+	repo list:<br>
+	<div id="repolist" class="menu-tree column expleft">          <ul>
+	  </ul>
+	</div><br> !-->
+
+	<!-- <div id="log"></div> !-->
+
+
+	<table id="repolist">
+	</table>
+	<table id="request" class="bumpspan">
+	</table>
+
+  </body>
+</html>
