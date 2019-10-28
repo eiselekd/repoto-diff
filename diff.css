@@ -6,10 +6,21 @@ td.diffspan {
     cursor: default;
     padding-left: 0px;
 }
- td {
+
+td {
   padding-left: 0px;
   text-align: left;
 }
+
+/*
+table.treetable tbody tr td.diffspan {
+  padding-left:1em;
+}*/
+
+table.treetable tbody tr td table tr td.diffspan  {
+  padding-left:0px;
+}
+
 
 /* ---------------------------------- */
 /* This text is in monospace */
