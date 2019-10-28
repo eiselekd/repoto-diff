@@ -78,6 +78,8 @@ def listOfRepoBranches(rv, f):
 
 def listOfManifestRepoBranches(d):
     manifestrepo=Repo(d)
+    for remote in manifestrepo.remotes:
+        remote.fetch()
     return listOfRepoBranches(manifestrepo, ".*origin/(.+)");
 
 def serverUrlToPath(url):
@@ -92,6 +94,8 @@ def repoBranches(repourl):
     branches = [];
     try:
         rv=Repo(d)
+        for remote in rv.remotes:
+            remote.fetch()
     except Exception as e:
         print("try clone '{}' into '{}'".format(repourl, d));
         rv=Repo.clone_from(repourl, d, multi_options=["--mirror"])
@@ -111,6 +115,9 @@ def repodiff(repourl, sha_a, sha_b):
     d = os.path.join("/tmp/repo_work", serverUrlToPath(repourl));
     try:
         rv=Repo(d)
+        for remote in rv.remotes:
+            remote.fetch()
+
     except Exception as e:
         print("try clone '{}' into '{}'".format(repourl, d));
         rv=Repo.clone_from(repourl, d, multi_options=["--mirror"])
