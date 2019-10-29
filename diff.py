@@ -73,6 +73,8 @@ def listOfRepoBranches(rv, f):
             print("> match: {} : {}".format(bn.strip(), g))
             if not (g.find("HEAD ->") == -1):
                 continue
+            if (g.startswith("refs/heads/")):
+                g = g[len("refs/heads/"):]
             r.append(g)
     return r;
 
@@ -105,7 +107,15 @@ def repoBranches(repourl):
 def repoBranchComits(repodir, repobranch):
     commits = [];
     rv=Repo(repodir)
-    for c in rv.iter_commits(rev="refs/heads/"+repobranch, max_count=100):
+    rev = "refs/heads/"+repobranch
+    for bn in rv.git.branch("-a").split("\n"):
+        bn = bn.strip()
+        for i in [ "refs/heads/", "remotes/origin/" ]:
+            #print(i + repobranch + " == " + bn)
+            if (i + repobranch) == bn:
+                rev = i + repobranch;
+                break;
+    for c in rv.iter_commits(rev=rev, max_count=100):
         commits.append(c);
     c = [ { 'sha': c.hexsha, 'summary': c.hexsha[0:7] + ":" +c.summary } for c in commits ]
     return c;
