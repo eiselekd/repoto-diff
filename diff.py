@@ -28,6 +28,8 @@ parser.add_argument('repos', nargs='*')
 opt = parser.parse_args()
 
 app = Flask(__name__, template_folder=".")
+app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0
+
 
 @app.route('/<path:path>')
 def static_file(path):
@@ -47,6 +49,7 @@ def serverFrom(r,e,typ="fetch"):
         repofetchurl = [n for n in r.remotes[0].urls][0]        
         a = repofetchurl.split("/");
         #print ("----- " + str(a));
+        a.pop()
         a.pop()
         #print ("----- " + str(a));
         a.append (e.name);
@@ -232,13 +235,15 @@ def api():
 
             elif (req['type'] == 'repoonoff'):
                 repoonoff = selobj(req['data'])
-                if (req['data']['onoff'] == "on"):
-                    server = req['data']['server_a'];
-                    add = repodiff(server, req['data']['sha_a'], req['data']['sha_b']);
-                    rem = repodiff(server, req['data']['sha_b'], req['data']['sha_a']);
+                try:
+                    if (req['data']['onoff'] == "on"):
+                        server = req['data']['server_a'];
+                        add = repodiff(server, req['data']['sha_a'], req['data']['sha_b']);
+                        rem = repodiff(server, req['data']['sha_b'], req['data']['sha_a']);
 
-                    ws.send(json.dumps({'type': 'repodiff', 'data' : update(repoonoff.tohash(), {'add' : add, 'rem' : rem })}));
-
+                        ws.send(json.dumps({'type': 'repodiff', 'data' : update(repoonoff.tohash(), {'add' : add, 'rem' : rem })}));
+                except Exception as e:
+                    print(str(e));
 
 
             time.sleep(1);

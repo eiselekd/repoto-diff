@@ -437,9 +437,9 @@ gen_tree.prototype.html = function(parent, na)
 
     // closure handlers
     var onoffcheckbox = "";
-    var repobranchselect = "";
-    var reposhaselect = "";
-    if ((this.e instanceof repovar)) {
+    var repobranchselect = "---";
+    var reposhaselect = "---";
+    if (this.e instanceof repovar) {
         var e = this.e;
         var onoffid = "onoff-"+id;
         onoffcheckbox = "<input type=\"checkbox\" id=\""+onoffid+"\" class=\"bumpcheck\"/>";
@@ -448,16 +448,23 @@ gen_tree.prototype.html = function(parent, na)
         } ]);
 
         var repobranchid = "repobranch-"+id;
-        repobranchselect = this.e['sha_a']; // "<select id=\""+repobranchid+"\" class=\"bumpselectbox repoelem\"></select>";
-        defered_event_handler.push([repobranchid, "click", function() {
-            e.propagate_event("repobranch", this, e);
-        } ]);
+        if (this.e['sha_a'] != undefined) {
+            repobranchselect = this.e['sha_a']; // "<select id=\""+repobranchid+"\" class=\"bumpselectbox repoelem\"></select>";
+            defered_event_handler.push([repobranchid, "click", function() {
+                e.propagate_event("repobranch", this, e);
+            } ]);
+        }
 
         var reposhaid = "reposha-"+id;
-        reposhaselect = this.e['sha_b']; //"<select id=\""+reposhaid+"\" class=\"shaselectbox repoelem\"></select>";
-        defered_event_handler.push([reposhaid, "click", function() {
-            e.propagate_event("reposha", this, e);
-        } ]);
+        if (this.e['sha_b'] != undefined) {
+            reposhaselect = this.e['sha_b']; //"<select id=\""+reposhaid+"\" class=\"shaselectbox repoelem\"></select>";
+            defered_event_handler.push([reposhaid, "click", function() {
+                e.propagate_event("reposha", this, e);
+            } ]);
+        }
+    } else {
+        repobranchselect = "";
+        reposhaselect = "";
     }
 
     return "<tr data-tt-id=\""+gid+"\" "+pgid+" id=\""+id+"\" ><td>"+onoffcheckbox+"<span class=\""+a.join(" ")+"\"><a style=\""+col+"\" onclick='"+func+"("+args+")' >" + this.n + "</a></span></td><td width=\"20\"></td><td width=\"\">"+repobranchselect+"</td><td width=\"\">"+reposhaselect+"</td></tr> " + l + "";
@@ -474,7 +481,7 @@ function propagate(e,r,g,b) {
 function idify(a) {
     var r = [];
     for (var i of a) {
-        //console.log(i);
+        console.log(i);
         var j = i.id();
         r.push(j);
     }
@@ -503,6 +510,14 @@ function unidify(d, a, b) {
 }
 
 function propagate(e,c) {
+    if (c == "diffremoved") {
+        e['sha_a'] = e['sha'];
+        e['server_a'] = e['server'];
+    } else {
+        e['sha_b'] = e['sha'];
+        e['server_b'] = e['server'];
+    }
+
     e.attr.class.push(c);
     for (var i of e.c) {
         propagate(i,c);
@@ -510,23 +525,39 @@ function propagate(e,c) {
 }
 
 function diffhirarchy(a,b,order=[],register=[]) {
+    console.log("a");console.log(a);
+    console.log("b");console.log(b);
     var a_i = idify(a);
     var b_i = idify(b);
-    //console.log(a_i);
-    //console.log(b_i);
+    console.log("a_i");console.log(a_i);
+    console.log("b_i");console.log(b_i);
     var d = diff(a_i, b_i);
-    //console.log(d);
+    console.log("log");console.log(d);
     var u = unidify(d, a, b);
     //console.log(u);
     var result = [];
     for (var e of u) {
         if (e[0] == undefined && e[1] != undefined) {
+
+            if (e[1].n=="arm-eabi-4.6") {
+                console.log("Found");
+            }
+
             propagate(e[1], "diffremoved");
+            e[1]['sha_a'] = e[1]['sha'];
+            e[1]['server_a'] = e[1]['server'];
             result.push(e[1]);
             try { if (e[1].gid()) register.push(e); } catch(e) {};
         }
         if (e[0] != undefined && e[1] == undefined) {
+
+            if (e[0].n=="arm-eabi-4.6") {
+                console.log("Found");
+            }
+
             propagate(e[0], "diffnew");
+            e[0]['sha_b'] = e[0]['sha'];
+            e[0]['server_b'] = e[0]['server'];
             result.push(e[0]);
             try { if (e[0].gid()) register.push(e); } catch(e) {};
         }
