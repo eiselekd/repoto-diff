@@ -185,13 +185,20 @@
 		  } else if (obj.type == "repodiff") {
 		      var id = obj.data.path;
 		      id = id.replace(/[\/\s\.@:\-]/ig, "_");
+
 		      var pid = $("#"+id).attr('data-tt-id');
 
 		      function genList(a, n) {
 			  var c = []
 			  for (var i of a) {
-			      //var line = "<tr><td class=\"diffspan\"><a class=\"shadiff\" data-sha=\">"+ i.sha +"</a>" + i.sha + ":" + i.summary +" </td></tr>";
-			      var line = "<a>" + i.sha +"</a>" + ":" + i.summary +"<br>";
+			      var shaid = globalIdnext();
+			      var commitlineid = globalIdnext();
+
+
+			      var line = "<tr data-tt-id=\""+shaid+"\" ><td class=\"diffspan\"> <a class=\"shadiff\" data-sha=\""+ i.sha +"\">" + i.sha.substr(0,7) + "</a>:" + i.summary.substr(0,50) +"... </td></tr>" +
+				  "<tr data-tt-id=\""+commitlineid+"\" data-tt-parent-id=\""+shaid+"\" ><td class=\"diffspan\"> data </td></tr>"
+				  ;
+			      //var line = "<a>" + i.sha +"</a>" + ":" + i.summary +"<br>";
 			      c.push(line);
 			  }
 			  var l = c.join("\n");
@@ -205,14 +212,15 @@
 			  var node = $("#repolist").treetable("node", pid);
 			  var removed = genList(obj.data.rem, n_rem);
 			  var added = genList(obj.data.add, n_add);
+			  
 			  $("#repolist").treetable("loadBranch", node,
-						   "<tr id=\"diffview-"+id+"\" data-tt-id='"+globalIdnext()+"' data-tt-parent-id='"+pid+"'>"+
+						   "<tr style=\"display: table-row;\" id=\"diffview-"+id+"\" data-tt-id='"+globalIdnext()+"' data-tt-parent-id='"+pid+"'>"+
 						   "<td></td><td></td><td class=\"diffspan\">"+removed+"</td><td class=\"diffspan\">"+added+"</td></tr>");
 
 			  $(".shadiff").click(function() { });
 
-			  //$("#"+n_add).treetable({ expandable: true },1);
-			  //$("#"+n_rem).treetable({ expandable: true },1);
+			  $("#"+n_add).treetable({ expandable: true },1);
+			  $("#"+n_rem).treetable({ expandable: true },1);
 
 		      }
 
