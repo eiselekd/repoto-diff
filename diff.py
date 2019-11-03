@@ -102,6 +102,7 @@ def repoBranches(repourl):
         for remote in rv.remotes:
             remote.fetch()
     except Exception as e:
+        print("Error Repo:"+str(e))
         print("try clone '{}' into '{}'".format(repourl, d));
         rv=Repo.clone_from(repourl, d, multi_options=["--mirror"])
     return listOfRepoBranches(rv,"(.+)");
@@ -123,18 +124,21 @@ def repoBranchComits(repodir, repobranch):
     c = [ { 'sha': c.hexsha, 'summary': c.hexsha[0:7] + ":" +c.summary } for c in commits ]
     return c;
 
-
-def repodiff(repourl, sha_a, sha_b):
+def getRepoDir(repourl):
     d = os.path.join("/tmp/repo_work", serverUrlToPath(repourl));
     try:
         rv=Repo(d)
         for remote in rv.remotes:
             remote.fetch()
-
     except Exception as e:
+        print("Error Repo:"+str(e))
         print("try clone '{}' into '{}'".format(repourl, d));
         rv=Repo.clone_from(repourl, d, multi_options=["--mirror"])
+    return d
 
+
+def repodiff(repourl, sha_a, sha_b):
+    d = getRepoDir(repourl);
     commits = [];
     print("repodiff from '{}'".format(d))
     rv=Repo(d)
@@ -143,6 +147,17 @@ def repodiff(repourl, sha_a, sha_b):
     c = [ { 'sha': c.hexsha, 'summary': c.summary } for c in commits ]
     return c;
 
+def repocommit(repourl, sha):
+    d = getRepoDir(repourl);
+    r = {}
+    print("repodiff from '{}'".format(d))
+    rv=Repo(d)
+    try:
+        c = rv.commit(sha);
+        r = { 'sha': c.hexsha, 'summary': c.summary }
+    except Exception as e:
+        print(str(e));
+    return r;
 
 def update(x, y):
     z = x.copy()   # start with x's keys and values
@@ -155,7 +170,7 @@ def update(x, y):
 #exit(0);
 # r.remotes[0].refs
 
-selobj_ar = ['repodir', 'id', 'mrb', 'mrrev', 'mfn', 'repo', 'review', 'repobranch', 'reposha', 'path' ];
+selobj_ar = ['repodir', 'id', 'mrb', 'mrrev', 'mfn', 'repo', 'review', 'repobranch', 'reposha', 'path', 'server_a', 'server_b', 'sha_a', 'sha_b', 'server', 'sha' ];
 
 class selobj:
 
@@ -243,6 +258,16 @@ def api():
 
                         ws.send(json.dumps({'type': 'repodiff', 'data' : update(repoonoff.tohash(), {'add' : add, 'rem' : rem })}));
                 except Exception as e:
+                    print("Request:"+str(req));
+                    print(str(e));
+
+
+            elif (req['type'] == 'reposha'):
+                reposha = selobj(req['data'])
+                try:
+                    c = repocommit(server, req['data']['sha']);
+                    ws.send(json.dumps({'type': 'reposha', 'data' : update(reposha.tohash(), c)}));
+                except Exception as e:
                     print(str(e));
 
 
@@ -251,6 +276,5 @@ def api():
 
 if __name__ == '__main__':
 
-    
     http_server = WSGIServer(('',5000), app, handler_class=WebSocketHandler)
     http_server.serve_forever()
