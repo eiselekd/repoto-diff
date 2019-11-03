@@ -17,6 +17,7 @@
     <link rel="stylesheet" type="text/css" href="http://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
     <script type="text/javascript" charset="utf-8">
       $(document).ready(function(){
+	  var cache = {repodiff:{}};
 	  var obj_val = [[],[]];
 	  var obj_val_branch = [[],[]];
 	  var obj_val_rev = [[],[]];
@@ -184,6 +185,10 @@
 		      }
 		  } else if (obj.type == "repodiff") {
 
+		      /* todo: cache */
+		      var cacheid = obj.data.server_a+","+obj.data.server_b+","+obj.data.sha_a+","+obj.data.sha_b;
+		      cache['repodiff'][cacheid] = obj;
+		      
 		      /* generate closure */
 		      (function (obj) {
 			  var id = obj.data.path;
@@ -196,8 +201,8 @@
 			      for (var i of a) {
 				  var shaid = globalIdnext();
 				  var commitlineid = globalIdnext();
-				  var line = "<tr data-tt-id=\""+shaid+"\" ><td></td><td class=\"diffspan\" data-sha=\""+ i.sha +"\"> <a class=\"shadiff\" >" + i.sha.substr(0,7) + "</a>:" + i.summary.substr(0,50) +"... </td></tr>" +
-				      "<tr data-tt-id=\""+commitlineid+"\" data-tt-parent-id=\""+shaid+"\" ><td></td><td class=\"diffspan "+i.sha+"\"> ... </td></tr>"
+				  var line = "<tr data-tt-id=\""+shaid+"\" ><td></td><td class=\"diffspan "+i.sha+"\" data-sha=\""+ i.sha +"\"> <a class=\"shadiff\" >" + i.sha.substr(0,7) + "</a>:" + i.summary.substr(0,50) +"... </td></tr>" +
+				      "<tr data-tt-id=\""+commitlineid+"\" data-tt-parent-id=\""+shaid+"\" ><td></td><td class=\"diffspan\"></td></tr>"
 				  ;
 				  //var line = "<a>" + i.sha +"</a>" + ":" + i.summary +"<br>";
 				  c.push(line);
@@ -224,13 +229,16 @@
 			      $("#"+n_rem).treetable({ expandable: true },1);
 
 			      function sendsha(e,addrem) {
+				  if ($(e).hasClass("dontload"))
+				      return;
+				  $(e).addClass("dontload");
 				  var id = $($(e).parents("tr")[0]).data("ttId");
 				  var idsha = $(e).parent("td");
 				  idsha = idsha.siblings("td")[0];
 				  var shaid = $(idsha).attr("data-sha");
 
 				  console.log(id);
-
+				  
 				  req = {'type': 'reposha', 'data' : update(obj.data, {'sha':shaid, 'server': (addrem=="add" ? obj.data['server_a'] : obj.data['server_b']) }) };
 				  ws.send(JSON.stringify(req));
 				  req.dir = "send sha request of " + addrem;
@@ -241,10 +249,68 @@
 			      $("#"+n_rem+" .indenter").click(function() {sendsha(this,"rem")});
 			  }
 		      })(obj);
+		      
 		  } else if (obj.type == "reposha") {
 		      var id = obj.data.sha;
 		      var src = escapeHtml(obj.data.src);
-		      $("."+id).html("<pre>"+src+"</pre>");
+		      //$("."+id).html("<pre>"+src+"</pre>");
+		      var pid = $($("."+id).parents("tr")[0]).data("ttId");
+		      var tableid = $($("."+id).parents("table")[0]).attr("id");
+		      
+
+		      var a = src.split("\n");
+		      var ismessage = 1; var message = []; var curdiff=undefined; var diffs = [];
+		      
+		      function closediff() {
+			  if (curdiff != undefined) {
+			      diffs.push(curdiff);
+			      curdiff = undefined;
+			  }
+		      }
+		      function opendiff(fn) {
+			  closediff();
+			  curdiff = { fn : fn, l : [] };
+		      }
+
+		      var a = src.split("\n");
+		      for (var l of a) {
+			  if (m = l.match( /^\+\+\+(.+)/ )) {
+			      opendiff(m[1]);
+			      ismessage = 0;
+			  } else {
+			      if (ismessage) {
+				  message.push(l);
+			      } else {
+				  if (curdiff != undefined) {
+				      curdiff.l.push(l);
+				  }
+			      }
+			  }
+		      }
+		      closediff();
+		      var a = []; var lid_ar = [];
+		      var lid = globalIdnext();
+		      a.push("<tr style=\"display: table-row;\" data-tt-id='"+lid+"' data-tt-parent-id='"+pid+"'>"+
+			     "<td></td><td class=\"diffspan\"><pre>"+message.join("\n")+"</pre></td></tr>");
+		      for ( var d of diffs) {
+			  var lid = globalIdnext(); lid_ar.push(lid);
+			  var srcid = globalIdnext();
+			  a.push("<tr style=\"display: table-row;\" data-tt-id='"+lid+"' data-tt-parent-id='"+pid+"'>"+
+				 "<td></td><td class=\"diffspan\">"+d.fn+"</td></tr>");
+			  a.push("<tr style=\"display: table-row;\" data-tt-id='"+srcid+"' data-tt-parent-id='"+lid+"'>"+
+				 "<td></td><td class=\"diffspan\"><pre>"+d.l.join("\n")+"</pre></td></tr>");
+		      }
+		      
+		      var node = $("#"+tableid).treetable("node", pid);
+		      
+		      $("#"+tableid).treetable("loadBranch", node, a.join("\n"));
+
+		      for (var lid of lid_ar) {
+			  var node = $("#"+tableid).treetable("node", lid);
+			  node.row.removeClass("collapsed");
+			  node.collapse();
+			  //$("#"+tableid).treetable("collapse", );
+		      }
 		  }
 
 	      };
