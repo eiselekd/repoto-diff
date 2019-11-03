@@ -481,7 +481,7 @@ function propagate(e,r,g,b) {
 function idify(a) {
     var r = [];
     for (var i of a) {
-        console.log(i);
+        //console.log(i);
         var j = i.id();
         r.push(j);
     }
@@ -525,14 +525,14 @@ function propagate(e,c) {
 }
 
 function diffhirarchy(a,b,order=[],register=[]) {
-    console.log("a");console.log(a);
-    console.log("b");console.log(b);
+    //console.log("a");console.log(a);
+    //console.log("b");console.log(b);
     var a_i = idify(a);
     var b_i = idify(b);
-    console.log("a_i");console.log(a_i);
-    console.log("b_i");console.log(b_i);
+    //console.log("a_i");console.log(a_i);
+    //console.log("b_i");console.log(b_i);
     var d = diff(a_i, b_i);
-    console.log("log");console.log(d);
+    //console.log("log");console.log(d);
     var u = unidify(d, a, b);
     //console.log(u);
     var result = [];
@@ -625,3 +625,12 @@ function treeCodeClickSetup() {
     // Hide all lists except the outermost.
     //$('.menu-tree ul ul').hide();
 };
+
+function escapeHtml(unsafe) {
+    return unsafe
+         .replace(/&/g, "&amp;")
+         .replace(/</g, "&lt;")
+         .replace(/>/g, "&gt;")
+         .replace(/"/g, "&quot;")
+         .replace(/'/g, "&#039;");
+ }

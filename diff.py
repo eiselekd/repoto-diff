@@ -59,7 +59,7 @@ def serverFrom(r,e,typ="fetch"):
         if (not server.endswith("/")):
             server+="/"
         server+=e.name;
-    print ("----- " + server);
+    #print ("----- " + server);
     return server
 
 ############################################
@@ -150,11 +150,12 @@ def repodiff(repourl, sha_a, sha_b):
 def repocommit(repourl, sha):
     d = getRepoDir(repourl);
     r = {}
-    print("repodiff from '{}'".format(d))
+    print("repocommit from '{}' of {}".format(d,sha))
     rv=Repo(d)
     try:
         c = rv.commit(sha);
-        r = { 'sha': c.hexsha, 'summary': c.summary }
+        p = rv.git.log("-1", "-p", sha);
+        r = { 'sha': c.hexsha, 'src' : p, 'summary': c.summary }
     except Exception as e:
         print(str(e));
     return r;
@@ -243,7 +244,7 @@ def api():
                     p = e.path;
                     if p == None:
                         p = e.name;
-                    print(server + ": " + p)
+                    #print(server + ": " + p)
                     pa.append({ 'path' : p, 'server' : server, 'sha' : e.revision});
 
                 ws.send(json.dumps(update(mfnsel.tohash(), {'type': 'repolist', 'data' : pa})));

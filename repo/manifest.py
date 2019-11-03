@@ -73,7 +73,7 @@ class mh_remote(mh_base):
 
 class mh_default(mh_base):
     def __init__(self,args,m,xml,depth=0):
-        super(mh_default,self).__init__(args,'default',m,xml,['elem'],['remote','sync-c','sync-j'],depth=depth)
+        super(mh_default,self).__init__(args,'default',m,xml,['elem'],['remote','sync-c','sync-j','revision'],depth=depth)
         
         
 class mh_project(mh_base):
@@ -315,11 +315,17 @@ class manifest(object):
         p = projar(None,self.args)
         nstack = [{'r':{},'f':{}}]
 
+        def searchup_default_ref():
+            for h in nstack:
+                if '__default_ref__' in h:
+                    return h['__default_ref__']
+            return None
+
         def searchup(n,d='f'):
             for h in nstack:
                 if (not(n is None)) and (n in h[d]):
                     return h[d][n]
-                elif ('__default__' in h):
+                elif (n is None) and ('__default__' in h):
                     #print(h['__default__'])
                     return h[d][h['__default__']]
             return None
@@ -335,6 +341,12 @@ class manifest(object):
                     pass
                 e.xml.attrib['_gitserver_'] = searchup(remote,'f')
                 e.xml.attrib['_reviewserver_'] = searchup(remote,'r')
+                if (e.revision is None):
+                    d = searchup_default_ref();
+                    if not (d is None):
+                        e.addnew = 1
+                        e.setxml('revision',d)
+                        #print("----------- searchupref {}->{} -----------".format(d,e.revision))
             elif isinstance(e,mh_remove_project):
                 p.rem(e)
             elif isinstance(e,mh_remote):
@@ -346,6 +358,9 @@ class manifest(object):
             elif isinstance(e,mh_default):
                 #print(e.get_xml().decode("utf-8"))
                 nstack[0]['__default__'] = e.remote
+                if not (e.revision is None):
+                    #print("-------------- found {} ------------------".format(e.revision));
+                    nstack[0]['__default_ref__'] = e.revision;
             elif isinstance(e,mh_scope):
                 if e.direction == "enter":
                     nstack.append({'r':{},'f':{}});
