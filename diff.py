@@ -1,3 +1,4 @@
+#!python3
 import os, re, json, time, copy, argparse, subprocess
 from glob import glob
 # apt install python-git
@@ -277,5 +278,5 @@ def api():
 
 if __name__ == '__main__':
 
-    http_server = WSGIServer(('',5000), app, handler_class=WebSocketHandler)
+    http_server = WSGIServer(('0.0.0.0',5000), app, handler_class=WebSocketHandler)
     http_server.serve_forever()
