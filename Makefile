@@ -1,7 +1,19 @@
+include Makefile.config.mk
+
 all:
 
 start-server:
 	python3 diff.py test/manifest_test_a test/manifest_test_b
+
+
+prep2:
+	mkdir -p test/
+	rm -rf test/flatten_a test/flatten_b
+	git clone ssh://eiselekd@localhost:29418/flatten test/flatten_a
+	git clone ssh://eiselekd@localhost:29418/flatten test/flatten_b
+
+start-server-2:
+	HOME=$(HOMEDIR) python3 diff.py test/flatten_a test/flatten_b
 
 
 prep:

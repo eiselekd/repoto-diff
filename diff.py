@@ -46,6 +46,7 @@ def serverFrom(r,e,typ="fetch"):
         server=e.xml.attrib['_gitserver_']
     else:
         server=e.xml.attrib['_reviewserver_']
+    #print("%s:%s:%s" %(typ,server,str(e)));
     if (server.startswith("..")):
         repofetchurl = [n for n in r.remotes[0].urls][0]        
         a = repofetchurl.split("/");
@@ -227,7 +228,7 @@ def api():
                 mrrevsel = selobj(req['data'])
                 r = Repo(mrrevsel.repodir)
                 r.git.checkout(mrrevsel.mrrev);
-                manifestfiles = glob("%s/*xml"%(mrrevsel.repodir));
+                manifestfiles = sorted(glob("%s/*xml"%(mrrevsel.repodir)));
                 ws.send(json.dumps({'type': 'manifestfiles', 'id' : mrrevsel.id, 'data' : [ update(mrrevsel.tohash(), { 'mfn' : e } ) for e in manifestfiles]}));
 
             elif (req['type'] == 'mfnsel'):

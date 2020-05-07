@@ -340,7 +340,13 @@ class manifest(object):
                 except:
                     pass
                 e.xml.attrib['_gitserver_'] = searchup(remote,'f')
+                # if non-def server specified switc hto def
+                if (e.xml.attrib['_gitserver_'] is None):
+                    e.xml.attrib['_gitserver_'] = searchup(None,'f')
                 e.xml.attrib['_reviewserver_'] = searchup(remote,'r')
+                # if non-def server specified switc hto def
+                if (e.xml.attrib['_reviewserver_'] is None):
+                    e.xml.attrib['_reviewserver_'] = searchup(none,'r')
                 if (e.revision is None):
                     d = searchup_default_ref();
                     if not (d is None):
