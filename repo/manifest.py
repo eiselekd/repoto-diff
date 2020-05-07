@@ -346,7 +346,7 @@ class manifest(object):
                 e.xml.attrib['_reviewserver_'] = searchup(remote,'r')
                 # if non-def server specified switc hto def
                 if (e.xml.attrib['_reviewserver_'] is None):
-                    e.xml.attrib['_reviewserver_'] = searchup(none,'r')
+                    e.xml.attrib['_reviewserver_'] = searchup(None,'r')
                 if (e.revision is None):
                     d = searchup_default_ref();
                     if not (d is None):

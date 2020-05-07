@@ -513,7 +513,7 @@ function propagate(e,c) {
     if (c == "diffremoved") {
         e['sha_a'] = e['sha'];
         e['server_a'] = e['server'];
-    } else {
+    } else if (c == "diffnew") {
         e['sha_b'] = e['sha'];
         e['server_b'] = e['server'];
     }
@@ -572,9 +572,13 @@ function diffhirarchy(a,b,order=[],register=[]) {
             } catch(e) {};
             e1['sha_b'] = e1['sha'];
             e1['sha_a'] = e0['sha'];
+
             e1['server_b'] = e1['server'];
             e1['server_a'] = e0['server'];
             e1.c = c;
+            if (e1['sha_a'] != e1['sha_b']) {
+                propagate(e1, "diffsha");
+            }
             result.push(e1);
             try { if (e[0].gid()) register.push(e); } catch(e) {};
         }

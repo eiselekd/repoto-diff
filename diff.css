@@ -63,6 +63,10 @@ span.diffnew {
     background-color: lightgreen;
 }
 
+span.diffsha {
+    background-color: blue;
+}
+
 span.diffremoved {
     background-color: red;
 }
