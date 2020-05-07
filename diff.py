@@ -241,7 +241,7 @@ def api():
             a = e.split(":");
             n = a.pop();
             a = ":".join(a);
-            p = getRepoDir(a, localprefix, nomirror=True);
+            p = getRepoDir(a, os.path.join(localprefix,n), nomirror=True);
             repolist.append(p);
 
         while True:
