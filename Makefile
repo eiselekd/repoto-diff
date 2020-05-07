@@ -13,7 +13,7 @@ prep2:
 	git clone ssh://eiselekd@localhost:29418/flatten test/flatten_b
 
 start-server-2:
-	HOME=$(HOMEDIR) python3 diff.py test/flatten_a test/flatten_b
+	HOME=$(HOMEDIR) python3 diff.py ssh://eiselekd@localhost:29418/flatten:flatten_a ssh://eiselekd@localhost:29418/flatten:flatten_b
 
 
 prep:

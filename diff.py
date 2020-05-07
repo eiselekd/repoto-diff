@@ -1,5 +1,7 @@
 #!python3
 import os, re, json, time, copy, argparse, subprocess
+from random import randrange
+import shutil
 from glob import glob
 # apt install python-git
 from git import Repo
@@ -24,7 +26,7 @@ parser.add_argument('--verbose', action='store_true', help='verbose')
 parser.add_argument('--prepare', action='store_true', help='verbose')
 parser.add_argument('--a', '-a', type=str, default='test/manifest_test_a', help='repo manifest dir a')
 parser.add_argument('--b', '-b', type=str, default='test/manifest_test_b', help='repo manifest dir b')
-parser.add_argument('--workdir', '-w', type=str, default='/tmp/repoto', help='work directory')
+parser.add_argument('--workdir', '-w', type=str, default='/tmp/repo_work', help='work directory')
 parser.add_argument('repos', nargs='*')
 opt = parser.parse_args()
 
@@ -37,7 +39,7 @@ def static_file(path):
     return send_from_directory(cdir, path)
 
 repodir=opt.a
-workdir="/tmp/repoto"
+workdir=opt.workdir; #"/tmp/repoto"
 prepare_repobranch="master";
 prepare_manifest="/data/repo/default.xml";
 
@@ -48,7 +50,7 @@ def serverFrom(r,e,typ="fetch"):
         server=e.xml.attrib['_reviewserver_']
     #print("%s:%s:%s" %(typ,server,str(e)));
     if (server.startswith("..")):
-        repofetchurl = [n for n in r.remotes[0].urls][0]        
+        repofetchurl = [n for n in r.remotes[0].urls][0]
         a = repofetchurl.split("/");
         #print ("----- " + str(a));
         a.pop()
@@ -96,8 +98,12 @@ def serverUrlToPath(url):
         url += ".git"
     return url;
 
-def repoBranches(repourl):
-    d = os.path.join("/tmp/repo_work", serverUrlToPath(repourl));
+def repoBranches(repourl, localbase=None):
+    global workdir;
+    base = workdir
+    if (localbase is not None):
+        base = os.path.join(base, localbase)
+    d = os.path.join(base, serverUrlToPath(repourl)); # "/tmp/repo_work"
     branches = [];
     try:
         rv=Repo(d)
@@ -126,8 +132,12 @@ def repoBranchComits(repodir, repobranch):
     c = [ { 'sha': c.hexsha, 'summary': c.hexsha[0:7] + ":" +c.summary } for c in commits ]
     return c;
 
-def getRepoDir(repourl):
-    d = os.path.join("/tmp/repo_work", serverUrlToPath(repourl));
+def getRepoDir(repourl, localbase=None, nomirror=False):
+    global workdir;
+    base = workdir
+    if (localbase is not None):
+        base = os.path.join(base, localbase)
+    d = os.path.join(base, serverUrlToPath(repourl)); # "/tmp/repo_work"
     try:
         rv=Repo(d)
         for remote in rv.remotes:
@@ -135,12 +145,15 @@ def getRepoDir(repourl):
     except Exception as e:
         print("Error Repo:"+str(e))
         print("try clone '{}' into '{}'".format(repourl, d));
-        rv=Repo.clone_from(repourl, d, multi_options=["--mirror"])
+        multiopt = []
+        if not nomirror:
+            multiopt = ["--mirror"]
+        rv=Repo.clone_from(repourl, d, multi_options=multiopt)
     return d
 
 
-def repodiff(repourl, sha_a, sha_b):
-    d = getRepoDir(repourl);
+def repodiff(repourl, sha_a, sha_b, localbase=None):
+    d = getRepoDir(repourl, localbase);
     commits = [];
     print("repodiff from '{}'".format(d))
     rv=Repo(d)
@@ -149,8 +162,8 @@ def repodiff(repourl, sha_a, sha_b):
     c = [ { 'sha': c.hexsha, 'summary': c.summary } for c in commits ]
     return c;
 
-def repocommit(repourl, sha):
-    d = getRepoDir(repourl);
+def repocommit(repourl, sha, localbase=None):
+    d = getRepoDir(repourl, localbase);
     r = {}
     print("repocommit from '{}' of {}".format(d,sha))
     rv=Repo(d)
@@ -204,8 +217,33 @@ class selobj:
 @app.route('/api')
 def api():
     global opt;
+    global workdir;
+
     if request.environ.get('wsgi.websocket'):
         ws = request.environ['wsgi.websocket']
+        localprefix = "%08x"%(randrange(1<<30));
+        print("New user %s" %(localprefix))
+        base = os.path.join(workdir, localprefix)
+        print("New user %s in '%s'" %(localprefix, base))
+        # reset local dir
+        try:
+            shutil.rmtree(base)
+        except:
+            pass
+        try:
+            if not os.path.exists(base):
+                os.makedirs(base)
+        except:
+            pass
+
+        repolist = []
+        for e in opt.repos:
+            a = e.split(":");
+            n = a.pop();
+            a = ":".join(a);
+            p = getRepoDir(a, localprefix, nomirror=True);
+            repolist.append(p);
+
         while True:
             req = ws.read_message()
             print("Got '{}'".format(req))
@@ -213,7 +251,7 @@ def api():
             print(str(req));
             if (req['type'] == 'start'):
                 startobj = { };
-                ws.send(json.dumps({'type': 'md', 'data' : [ update(startobj, {'repodir' : e }) for e in opt.repos]}))
+                ws.send(json.dumps({'type': 'md', 'data' : [ update(startobj, {'repodir' : e }) for e in repolist]})) #opt.repos
             elif (req['type'] == 'mdsel'):
                 mdsel = selobj(req['data'])
                 repobranches = listOfManifestRepoBranches(mdsel.repodir)
@@ -256,8 +294,8 @@ def api():
                 try:
                     if (req['data']['onoff'] == "on"):
                         server = req['data']['server_a'];
-                        add = repodiff(server, req['data']['sha_a'], req['data']['sha_b']);
-                        rem = repodiff(server, req['data']['sha_b'], req['data']['sha_a']);
+                        add = repodiff(server, req['data']['sha_a'], req['data']['sha_b'], localprefix);
+                        rem = repodiff(server, req['data']['sha_b'], req['data']['sha_a'], localprefix);
 
                         ws.send(json.dumps({'type': 'repodiff', 'data' : update(repoonoff.tohash(), {'add' : add, 'rem' : rem })}));
                 except Exception as e:
@@ -268,7 +306,7 @@ def api():
             elif (req['type'] == 'reposha'):
                 reposha = selobj(req['data'])
                 try:
-                    c = repocommit(server, req['data']['sha']);
+                    c = repocommit(server, req['data']['sha'], localprefix);
                     ws.send(json.dumps({'type': 'reposha', 'data' : update(reposha.tohash(), c)}));
                 except Exception as e:
                     print(str(e));
