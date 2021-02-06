@@ -202,7 +202,7 @@
 				  var shaid = globalIdnext();
 				  var commitlineid = globalIdnext();
 				  var line = "<tr data-tt-id=\""+shaid+"\" ><td></td><td class=\"diffspan "+i.sha+"\" data-sha=\""+ i.sha +"\"> <a class=\"shadiff\" >" + i.sha.substr(0,7) + "</a>:" + i.summary.substr(0,50) +"... </td></tr>" +
-				      "<tr data-tt-id=\""+commitlineid+"\" data-tt-parent-id=\""+shaid+"\" ><td></td><td class=\"diffspan\"></td></tr>"
+				      "<tr data-tt-id=\""+commitlineid+"\" data-tt-parent-id=\""+shaid+"\" ><td></td><td class=\"diffspan\"></td><td></td></tr>"
 				  ;
 				  //var line = "<a>" + i.sha +"</a>" + ":" + i.summary +"<br>";
 				  c.push(line);
@@ -215,13 +215,84 @@
 			  if ($("#diffview-"+id).length == 0) {
 			      var n_add = "diffview-add-"+id;
 			      var n_rem = "diffview-rem-"+id;
+			      var n_src_branch = "rebase-src-branch-"+id;
+			      var n_src_tag = "rebase-src-tag-"+id;
+			      var n_dst_branch = "rebase-dst-branch-"+id;
+			      
 			      var node = $("#repolist").treetable("node", pid);
 			      var removed = genList(obj.data.rem, n_rem);
 			      var added = genList(obj.data.add, n_add);
 
+			      var rebase = "\
+			          <table>\
+				  <tr>\
+				  <th></th>\
+				  </tr>\
+				  <tr>\
+				  <td>\
+				  <span class=\"diffspan\">Src Branch</span>\
+				  </td>\
+				  <td>\
+				  <select id=\""+n_src_branch+"\" class=\"diffselectbox\" placeholder=\"Please select\"></select>\
+				  </td>\
+				  </tr>\
+\
+				  <tr>\
+				  <td>\
+				  <span class=\"diffspan\">Src Tag </span>\
+				  </td>\
+				  <td>\
+				  <select id=\""+n_src_tag+"\" class=\"diffselectbox\" placeholder=\"Please select\"></select>\
+				  </td>\
+				  </tr>\
+\
+			      	  <tr>\
+				  <td>\
+				  <span class=\"diffspan\">Dst Branch</span>\
+				  </td>\
+				  <td>\
+				  <select id=\""+n_dst_branch+"\" class=\"diffselectbox\" placeholder=\"Please select\"></select>\
+				  </td>\
+				  </tr>\
+\
+				  </table>";
+
+			      rebase = "";
 			      $("#repolist").treetable("loadBranch", node,
 						       "<tr style=\"display: table-row;\" id=\"diffview-"+id+"\" data-tt-id='"+globalIdnext()+"' data-tt-parent-id='"+pid+"'>"+
-						       "<td></td><td></td><td class=\"diffspan\">"+removed+"</td><td class=\"diffspan\">"+added+"</td></tr>");
+						       "<td></td><td></td><td class=\"diffspan\">"+removed+"</td><td>"+rebase+"</td><td class=\"diffspan\">"+added+"</td><td></td></tr>");
+
+			      var rebase_branch_sel = function() {
+				  var val = $(this).val().split(",");
+				  console.log(val);
+				  req = {'type': 'selrebasetag', 'data' : update(obj.data, {'branch':val[0]}) };
+				  ws.send(JSON.stringify(req));
+				  req.dir = "send request selrebasetag";
+				  console.log(req);
+			      }
+			      $('#'+n_src_branch).bind("change", rebase_branch_sel);
+			      $('#'+n_src_branch).empty();
+			      var idx = 0;
+		      	      for (const i of obj.data.branches) {
+				  $('#'+n_src_branch).append(new Option(i,[i,idx]));
+				  idx += 1;
+			      }
+
+
+
+
+
+			      
+			      $('#'+n_dst_branch).bind("change", e);
+			      $('#'+n_dst_branch).empty();
+			      var idx = 0;
+			      for (const i of (obj.data.branches.concat(obj.data.tags).sort())) {
+				  $('#'+n_dst_branch).append(new Option(i,[i,idx]));
+				  idx += 1;
+			      }
+			      
+
+			      
 
 			      $(".shadiff").click(function() { });
 

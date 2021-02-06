@@ -467,7 +467,7 @@ gen_tree.prototype.html = function(parent, na)
         reposhaselect = "";
     }
 
-    return "<tr data-tt-id=\""+gid+"\" "+pgid+" id=\""+id+"\" ><td>"+onoffcheckbox+"<span class=\""+a.join(" ")+"\"><a style=\""+col+"\" onclick='"+func+"("+args+")' >" + this.n + "</a></span></td><td width=\"20\"></td><td width=\"\">"+repobranchselect+"</td><td width=\"\">"+reposhaselect+"</td></tr> " + l + "";
+    return "<tr data-tt-id=\""+gid+"\" "+pgid+" id=\""+id+"\" ><td>"+onoffcheckbox+"<span class=\""+a.join(" ")+"\"><a style=\""+col+"\" onclick='"+func+"("+args+")' >" + this.n + "</a></span></td><td width=\"20\"></td><td width=\"\">"+repobranchselect+"</td><td class=\"branchtagsel\"></td><td width=\"\">"+reposhaselect+"</td><td></td></tr> " + l + "";
 
 }
 

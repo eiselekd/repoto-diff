@@ -127,7 +127,7 @@ def repoBranchComits(repodir, repobranch):
             if (i + repobranch) == bn:
                 rev = i + repobranch;
                 break;
-    for c in rv.iter_commits(rev=rev, max_count=100):
+    for c in rv.iter_commits(rev=rev, max_count=1000):
         commits.append(c);
     c = [ { 'sha': c.hexsha, 'summary': c.hexsha[0:7] + ":" +c.summary } for c in commits ]
     return c;
@@ -151,13 +151,23 @@ def getRepoDir(repourl, localbase=None, nomirror=False):
         rv=Repo.clone_from(repourl, d, multi_options=multiopt)
     return d
 
+def repotags(repourl, localbase=None):
+    d = getRepoDir(repourl, localbase);
+    rv=Repo(d)
+    return [ str(i) for i in rv.tags];
+
+# retrieve tags that are parent of branch
+def repotagsof(repourl, branch, localbase=None):
+    d = getRepoDir(repourl, localbase);
+    rv=Repo(d)
+    return [ str(i) for i in rv.tags ];
 
 def repodiff(repourl, sha_a, sha_b, localbase=None):
     d = getRepoDir(repourl, localbase);
     commits = [];
     print("repodiff from '{}'".format(d))
     rv=Repo(d)
-    for c in rv.iter_commits(sha_a + ".."+ sha_b, max_count=200):
+    for c in rv.iter_commits(sha_a + ".."+ sha_b, max_count=1000):
         commits.append(c);
     c = [ { 'sha': c.hexsha, 'summary': c.summary } for c in commits ]
     return c;
@@ -296,8 +306,10 @@ def api():
                         server = req['data']['server_a'];
                         add = repodiff(server, req['data']['sha_a'], req['data']['sha_b'], localprefix);
                         rem = repodiff(server, req['data']['sha_b'], req['data']['sha_a'], localprefix);
+                        branches = repoBranches(server, localprefix);
+                        tags = repotags(server, localprefix);
 
-                        ws.send(json.dumps({'type': 'repodiff', 'data' : update(repoonoff.tohash(), {'add' : add, 'rem' : rem })}));
+                        ws.send(json.dumps({'type': 'repodiff', 'data' : update(repoonoff.tohash(), {'add' : add, 'rem' : rem, 'branches': branches, 'tags' : tags})}));
                 except Exception as e:
                     print("Request:"+str(req));
                     print(str(e));
@@ -308,6 +320,14 @@ def api():
                 try:
                     c = repocommit(server, req['data']['sha'], localprefix);
                     ws.send(json.dumps({'type': 'reposha', 'data' : update(reposha.tohash(), c)}));
+                except Exception as e:
+                    print(str(e));
+
+            elif (req['type'] == 'selrebasetag'):
+                selrebasetag = selobj(req['data'])
+                try:
+                    c = repotagsof(server, req['data']['branch'], localprefix);
+                    ws.send(json.dumps({'type': 'selrebasetag', 'data' : update(selrebasetag.tohash(), c)}));
                 except Exception as e:
                     print(str(e));
 
