@@ -3,6 +3,7 @@ include Makefile.config.mk
 all:
 
 start-server:
+	mkdir -p /tmp/repo_work
 	python3 diff.py test/manifest_test_a test/manifest_test_b
 
 
