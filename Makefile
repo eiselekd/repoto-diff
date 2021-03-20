@@ -1,4 +1,4 @@
-include Makefile.config.mk
+-include Makefile.config.mk
 
 all:
 
