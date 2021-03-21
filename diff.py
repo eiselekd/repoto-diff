@@ -1,5 +1,6 @@
 #!python3
 import os, re, json, time, copy, argparse, subprocess
+from urllib.parse import urlparse, urlunparse
 from random import randrange
 import shutil
 from glob import glob
@@ -26,6 +27,7 @@ parser.add_argument('--verbose', action='store_true', help='verbose')
 parser.add_argument('--prepare', action='store_true', help='verbose')
 parser.add_argument('--a', '-a', type=str, default='test/manifest_test_a', help='repo manifest dir a')
 parser.add_argument('--b', '-b', type=str, default='test/manifest_test_b', help='repo manifest dir b')
+parser.add_argument('--removepath', '-r', type=str, default=None, help='Remove prefix of path')
 parser.add_argument('--workdir', '-w', type=str, default='/tmp/repo_work', help='work directory')
 parser.add_argument('--same', action='store_true', help='Use same workfolder')
 parser.add_argument('repos', nargs='*')
@@ -113,7 +115,7 @@ def repoBranches(repourl, localbase=None):
         for remote in rv.remotes:
             remote.fetch()
     except Exception as e:
-        print("Error Repo:"+str(e))
+        print("Error trying first repo clone:"+str(e))
         print("try clone '{}' into '{}'".format(repourl, d));
         rv=Repo.clone_from(repourl, d, multi_options=["--mirror"])
     return listOfRepoBranches(rv,"(.+)");
@@ -187,6 +189,19 @@ def repocommit(repourl, sha, localbase=None):
     except Exception as e:
         print(str(e));
     return r;
+
+def gitbase(rv):
+    global workdir;
+    u = urlparse(rv.remotes.origin.url)
+    u = u._replace(path='')
+    return urlunparse(u)
+
+#    return
+
+    for remote in rv.remotes:
+        print(str(remote))
+        pass #remote.fetch()
+    return "a"
 
 def update(x, y):
     z = x.copy()   # start with x's keys and values
@@ -322,7 +337,10 @@ def api():
                     r.git.checkout(mfnsel.mrrev);
 
                     print("Load {}\n".format(mfnsel.mfn))
-                    m0 = manifest(opt, mfnsel.mfn);
+                    opt_copy = copy.deepcopy(opt)
+                    opt_copy.gitbase = gitbase(r)
+
+                    m0 = manifest(opt_copy, mfnsel.mfn);
                     p0 = m0.get_projar();
                     pa = []
                     for e in p0.p:

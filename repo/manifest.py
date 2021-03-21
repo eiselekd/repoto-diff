@@ -69,6 +69,7 @@ class mh_remote(mh_base):
     def __init__(self,args,m,xml,depth=0):
         super(mh_remote,self).__init__(args,'remote',m,xml,['elem'],['name','pushurl','review','fetch'],depth=depth)
         if ('fetch' in self.xml.attrib) and (self.xml.attrib['fetch'] == "../../"):
+            print("replace ../../ with gitbase: {}".format(args.gitbase))
             self.xml.attrib['fetch']=args.gitbase
 
 class mh_default(mh_base):
