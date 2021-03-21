@@ -13,3 +13,14 @@ to install packages
 and connect to ```http://localhost:5000/diff.html```
 
 ![Screenshot](files/screen0.jpg?raw=true "repoto-diff")
+
+* Added repositories : marked green
+* Deleted repositories : marked red
+* Sha changes : marked blue, Select checkbox to see patches that are added and removed
+
+
+
+
+
+
+
