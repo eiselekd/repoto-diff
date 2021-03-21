@@ -148,7 +148,7 @@ def getRepoDir(repourl, localbase=None, nomirror=False):
         for remote in rv.remotes:
             remote.fetch()
     except Exception as e:
-        print("Error Repo:"+str(e))
+        print("first clone repo try:"+str(e))
         print("try clone '{}' into '{}'".format(repourl, d));
         multiopt = []
         if not nomirror:
@@ -372,7 +372,7 @@ def api():
                 elif (req['type'] == 'reposha'):
                     reposha = selobj(req['data'])
                     try:
-                        c = repocommit(server, req['data']['sha'], localprefix);
+                        c = repocommit(req['data']['server'], req['data']['sha'], localprefix);
                         ws.send(json.dumps({'type': 'reposha', 'data' : update(reposha.tohash(), c)}));
                     except Exception as e:
                         print(str(e));
