@@ -266,89 +266,93 @@ def api():
             repolist.append(p);
 
         while True:
-            req = ws.read_message()
-            print("Got '{}'".format(req))
-            req = json.loads(req)
-            print(str(req));
-            if (req['type'] == 'start'):
-                if ('addpath' in req):
-                    addpath = req['addpath'].strip();
-                    print("Adding {} as manifest patch".format(addpath))
-                    p = getRepoDir(addpath, localprefix, nomirror=True);
-                    repolist.append(p);
+            try:
+
+                req = ws.read_message()
+                print("Got '{}'".format(req))
+                req = json.loads(req)
+                print(str(req));
+                if (req['type'] == 'start'):
+                    if ('addpath' in req):
+                        addpath = req['addpath'].strip();
+                        print("Adding {} as manifest patch".format(addpath))
+                        p = getRepoDir(addpath, localprefix, nomirror=True);
+                        repolist.append(p);
 
 
-                startobj = { };
-                ws.send(json.dumps({'type': 'md', 'data' : [ update(startobj, {'repodir' : e }) for e in repolist]})) #opt.repos
-            elif (req['type'] == 'mdsel'):
-                mdsel = selobj(req['data'])
-                repobranches = listOfManifestRepoBranches(mdsel.repodir)
-                ws.send(json.dumps({'type': 'mrbranches', 'id' : mdsel.id, 'data' : [ update(mdsel.tohash(), {'mrb' : e }) for e in repobranches]}));
-            elif (req['type'] == 'mrbsel'):
-                mrbsel = selobj(req['data'])
-                ba = repoBranchComits(mrbsel.repodir, mrbsel.mrb);
-                for e in ba:
-                    e['mrrev'] = e['sha'];
-                ws.send(json.dumps({'type': 'mrrevs', 'id' : mrbsel.id, 'data' : [ update(mrbsel.tohash(), e ) for e in ba]}));
-            elif (req['type'] == 'mrrevsel'):
-                mrrevsel = selobj(req['data'])
-                r = Repo(mrrevsel.repodir)
-                r.git.checkout(mrrevsel.mrrev);
-                manifestfiles = sorted(glob("%s/*xml"%(mrrevsel.repodir)));
-                ws.send(json.dumps({'type': 'manifestfiles', 'id' : mrrevsel.id, 'data' : [ update(mrrevsel.tohash(), { 'mfn' : e } ) for e in manifestfiles]}));
+                    startobj = { };
+                    ws.send(json.dumps({'type': 'md', 'data' : [ update(startobj, {'repodir' : e }) for e in repolist]})) #opt.repos
+                elif (req['type'] == 'mdsel'):
+                    mdsel = selobj(req['data'])
+                    repobranches = listOfManifestRepoBranches(mdsel.repodir)
+                    ws.send(json.dumps({'type': 'mrbranches', 'id' : mdsel.id, 'data' : [ update(mdsel.tohash(), {'mrb' : e }) for e in repobranches]}));
+                elif (req['type'] == 'mrbsel'):
+                    mrbsel = selobj(req['data'])
+                    ba = repoBranchComits(mrbsel.repodir, mrbsel.mrb);
+                    for e in ba:
+                        e['mrrev'] = e['sha'];
+                    ws.send(json.dumps({'type': 'mrrevs', 'id' : mrbsel.id, 'data' : [ update(mrbsel.tohash(), e ) for e in ba]}));
+                elif (req['type'] == 'mrrevsel'):
+                    mrrevsel = selobj(req['data'])
+                    r = Repo(mrrevsel.repodir)
+                    r.git.checkout(mrrevsel.mrrev);
+                    manifestfiles = sorted(glob("%s/*xml"%(mrrevsel.repodir)));
+                    ws.send(json.dumps({'type': 'manifestfiles', 'id' : mrrevsel.id, 'data' : [ update(mrrevsel.tohash(), { 'mfn' : e } ) for e in manifestfiles]}));
 
-            elif (req['type'] == 'mfnsel'):
-                mfnsel = selobj(req['data'])
+                elif (req['type'] == 'mfnsel'):
+                    mfnsel = selobj(req['data'])
 
-                r = Repo(mrbsel.repodir)
-                r.git.checkout(mfnsel.mrrev);
+                    r = Repo(mrbsel.repodir)
+                    r.git.checkout(mfnsel.mrrev);
 
-                print("Load {}\n".format(mfnsel.mfn))
-                m0 = manifest(opt, mfnsel.mfn);
-                p0 = m0.get_projar();
-                pa = []
-                for e in p0.p:
-                    server=serverFrom(r,e)
-                    p = e.path;
-                    if p == None:
-                        p = e.name;
-                    #print(server + ": " + p)
-                    pa.append({ 'path' : p, 'server' : server, 'sha' : e.revision});
+                    print("Load {}\n".format(mfnsel.mfn))
+                    m0 = manifest(opt, mfnsel.mfn);
+                    p0 = m0.get_projar();
+                    pa = []
+                    for e in p0.p:
+                        server=serverFrom(r,e)
+                        p = e.path;
+                        if p == None:
+                            p = e.name;
+                            #print(server + ": " + p)
+                        pa.append({ 'path' : p, 'server' : server, 'sha' : e.revision});
 
-                ws.send(json.dumps(update(mfnsel.tohash(), {'type': 'repolist', 'data' : pa})));
+                    ws.send(json.dumps(update(mfnsel.tohash(), {'type': 'repolist', 'data' : pa})));
 
-            elif (req['type'] == 'repoonoff'):
-                repoonoff = selobj(req['data'])
-                try:
-                    if (req['data']['onoff'] == "on"):
-                        server = req['data']['server_a'];
-                        add = repodiff(server, req['data']['sha_a'], req['data']['sha_b'], localprefix);
-                        rem = repodiff(server, req['data']['sha_b'], req['data']['sha_a'], localprefix);
-                        branches = repoBranches(server, localprefix);
-                        tags = repotags(server, localprefix);
+                elif (req['type'] == 'repoonoff'):
+                    repoonoff = selobj(req['data'])
+                    try:
+                        if (req['data']['onoff'] == "on"):
+                            server = req['data']['server_a'];
+                            add = repodiff(server, req['data']['sha_a'], req['data']['sha_b'], localprefix);
+                            rem = repodiff(server, req['data']['sha_b'], req['data']['sha_a'], localprefix);
+                            branches = repoBranches(server, localprefix);
+                            tags = repotags(server, localprefix);
 
-                        ws.send(json.dumps({'type': 'repodiff', 'data' : update(repoonoff.tohash(), {'add' : add, 'rem' : rem, 'branches': branches, 'tags' : tags})}));
-                except Exception as e:
-                    print("Request:"+str(req));
-                    print(str(e));
+                            ws.send(json.dumps({'type': 'repodiff', 'data' : update(repoonoff.tohash(), {'add' : add, 'rem' : rem, 'branches': branches, 'tags' : tags})}));
+                    except Exception as e:
+                        print("Request:"+str(req));
+                        print(str(e));
 
 
-            elif (req['type'] == 'reposha'):
-                reposha = selobj(req['data'])
-                try:
-                    c = repocommit(server, req['data']['sha'], localprefix);
-                    ws.send(json.dumps({'type': 'reposha', 'data' : update(reposha.tohash(), c)}));
-                except Exception as e:
-                    print(str(e));
+                elif (req['type'] == 'reposha'):
+                    reposha = selobj(req['data'])
+                    try:
+                        c = repocommit(server, req['data']['sha'], localprefix);
+                        ws.send(json.dumps({'type': 'reposha', 'data' : update(reposha.tohash(), c)}));
+                    except Exception as e:
+                        print(str(e));
 
-            elif (req['type'] == 'selrebasetag'):
-                selrebasetag = selobj(req['data'])
-                try:
-                    c = repotagsof(server, req['data']['branch'], localprefix);
-                    ws.send(json.dumps({'type': 'selrebasetag', 'data' : update(selrebasetag.tohash(), c)}));
-                except Exception as e:
-                    print(str(e));
+                elif (req['type'] == 'selrebasetag'):
+                    selrebasetag = selobj(req['data'])
+                    try:
+                        c = repotagsof(server, req['data']['branch'], localprefix);
+                        ws.send(json.dumps({'type': 'selrebasetag', 'data' : update(selrebasetag.tohash(), c)}));
+                    except Exception as e:
+                        print(str(e));
 
+            except Exception as e:
+                print(str(e));
 
             time.sleep(1);
 
