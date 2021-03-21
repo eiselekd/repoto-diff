@@ -1,5 +1,5 @@
 #!python3
-import os, re, json, time, copy, argparse, subprocess
+import os, re, json, time, copy, argparse, subprocess, traceback, sys
 from urllib.parse import urlparse, urlunparse
 from random import randrange
 import shutil
@@ -247,6 +247,8 @@ def api():
     global opt;
     global workdir;
 
+    print("WS request: {}".format(str(request)))
+
     if request.environ.get('wsgi.websocket'):
         ws = request.environ['wsgi.websocket']
         if opt.same:
@@ -299,8 +301,11 @@ def api():
 
         while True:
             try:
-
-                req = ws.read_message()
+                try:
+                    req = ws.read_message()
+                except:
+                    print("Websocket closed");
+                    return
                 print("Got '{}'".format(req))
                 req = json.loads(req)
                 print(str(req));
@@ -407,6 +412,9 @@ def api():
                         print(str(e));
 
             except Exception as e:
+                exc_info = sys.exc_info()
+                traceback.print_exception(*exc_info)
+                del(exc_info)
                 print(str(e));
 
             time.sleep(1);

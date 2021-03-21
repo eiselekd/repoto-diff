@@ -16,7 +16,8 @@ prep2:
 	git clone ssh://eiselekd@localhost:29418/flatten test/flatten_b
 
 start-server-others:
-	HOME=$(HOMEDIR) python3 diff.py ssh://eiselekd@localhost:29418/flatten:flatten_a ssh://eiselekd@localhost:29418/flatten:flatten_b
+	python3 diff.py
+#	HOME=$(HOMEDIR) python3 diff.py ssh://eiselekd@localhost:29418/flatten:flatten_a ssh://eiselekd@localhost:29418/flatten:flatten_b
 
 
 prep:
