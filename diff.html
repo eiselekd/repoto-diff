@@ -43,7 +43,11 @@
 	      ws.onmessage = function (msg) {
 		  var obj = JSON.parse(msg.data);
 		  console.log("> got reply");console.log(obj);
-		  if (obj.type == "md") {
+
+		  if (obj.type == "print") {
+		      $("#log").html("<br><p>"+obj.data.join("<br>\n")+"</p>");
+		  }
+		  else if (obj.type == "md") {
 		      var idx = 0;
 		      $("#log").html("Manifest dirs<br><p>"+obj.data.join("<br>\n")+"</p>")
 		      var e = function() {
@@ -205,12 +209,14 @@
 
 			  var pid = $("#"+id).attr('data-tt-id');
 
-			  function genList(a, n) {
+			  function genList(a, n, comitdiff) {
 			      var c = []
 			      for (var i of a) {
 				  var shaid = globalIdnext();
 				  var commitlineid = globalIdnext();
-				  var line = "<tr data-tt-id=\""+shaid+"\" ><td></td><td class=\"diffspan "+i.sha+"\" data-sha=\""+ i.sha +"\"> <a class=\"shadiff\" >" + i.sha.substr(0,7) + "</a>:" + i.summary.substr(0,50) +"... </td></tr>" +
+				  var comitdiff_a = comitdiff.replace("[ref]",i.sha);
+
+				  var line = "<tr data-tt-id=\""+shaid+"\" ><td></td><td nowrap class=\"diffspan "+i.sha+"\" data-sha=\""+ i.sha +"\"> <a class=\"shadiff\" target=\"_blank\" href=\""+comitdiff_a+"\">" + i.sha.substr(0,7) + "</a>:" + i.summary.substr(0,50) +"... </td></tr>" +
 				      "<tr data-tt-id=\""+commitlineid+"\" data-tt-parent-id=\""+shaid+"\" ><td></td><td class=\"diffspan\"></td><td></td></tr>"
 				  ;
 				  //var line = "<a>" + i.sha +"</a>" + ":" + i.summary +"<br>";
@@ -229,8 +235,8 @@
 			      var n_dst_branch = "rebase-dst-branch-"+id;
 			      
 			      var node = $("#repolist").treetable("node", pid);
-			      var removed = genList(obj.data.rem, n_rem);
-			      var added = genList(obj.data.add, n_add);
+			      var removed = genList(obj.data.rem, n_rem, obj.data.add_commitdiff);
+			      var added = genList(obj.data.add, n_add, obj.data.rem_commitdiff);
 
 			      var rebase = "\
 			          <table>\
@@ -433,6 +439,9 @@
 	<td>
 	  <select id="mrdir-1" class="diffselectbox" placeholder="Please select"></select>
 	</td>
+	<td rowspan=4>
+	  <div id="logcat"></div>
+	</td>
       </tr>
       <tr>
 	<td>
@@ -475,7 +484,6 @@
 	  </ul>
 	</div><br> !-->
 
-	<!-- <div id="log"></div> !-->
 
 
 	<table id="repolist">

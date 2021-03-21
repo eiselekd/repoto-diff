@@ -5,7 +5,7 @@
  * used to compare items in `a` and `b`; if this will not work (for example,
  * if the items in `a` and `b` are objects), a custom equality function,
  * `eql`, may be passed as a third argument.
- *
+gen_tree *
  * @param {Array} a
  * @param {Array} b
  * @param {Function} eql
@@ -152,6 +152,7 @@ function repovar (r) {
     this.gn = r['gid'];
     this.sha = r['sha'];
     this.server = r['server'];
+    this.a_shortlog = r['a_shortlog'];
     this.attr = {'class' : ['selrepovar','sha'+r['sha']]};
     this.c = [];
     this.gid = ++globalId;
@@ -450,6 +451,11 @@ gen_tree.prototype.html = function(parent, na)
         var repobranchid = "repobranch-"+id;
         if (this.e['sha_a'] != undefined) {
             repobranchselect = this.e['sha_a']; // "<select id=\""+repobranchid+"\" class=\"bumpselectbox repoelem\"></select>";
+
+            if (this.e['a_shortlog_a'] != undefined) {
+                repobranchselect = "<a target=\"_blank\"  href=\""+this.e['a_shortlog_a']+"\">" + repobranchselect + "</a>";
+            }
+
             defered_event_handler.push([repobranchid, "click", function() {
                 e.propagate_event("repobranch", this, e);
             } ]);
@@ -458,6 +464,11 @@ gen_tree.prototype.html = function(parent, na)
         var reposhaid = "reposha-"+id;
         if (this.e['sha_b'] != undefined) {
             reposhaselect = this.e['sha_b']; //"<select id=\""+reposhaid+"\" class=\"shaselectbox repoelem\"></select>";
+
+            if (this.e['a_shortlog_b'] != undefined) {
+                reposhaselect = "<a  target=\"_blank\" href=\""+this.e['a_shortlog_b']+"\">" + reposhaselect + "</a>";
+            }
+
             defered_event_handler.push([reposhaid, "click", function() {
                 e.propagate_event("reposha", this, e);
             } ]);
@@ -512,9 +523,11 @@ function unidify(d, a, b) {
 function propagate(e,c) {
     if (c == "diffremoved") {
         e['sha_a'] = e['sha'];
+        e['a_shortlog_a'] = e['a_shortlog'];
         e['server_a'] = e['server'];
     } else if (c == "diffnew") {
         e['sha_b'] = e['sha'];
+        e['a_shortlog_b'] = e['a_shortlog'];
         e['server_b'] = e['server'];
     }
 
@@ -545,6 +558,7 @@ function diffhirarchy(a,b,order=[],register=[]) {
 
             propagate(e[1], "diffremoved");
             e[1]['sha_a'] = e[1]['sha'];
+            e[1]['a_shortlog_a'] = e[1]['a_shortlog'];
             e[1]['server_a'] = e[1]['server'];
             result.push(e[1]);
             try { if (e[1].gid()) register.push(e); } catch(e) {};
@@ -557,6 +571,7 @@ function diffhirarchy(a,b,order=[],register=[]) {
 
             propagate(e[0], "diffnew");
             e[0]['sha_b'] = e[0]['sha'];
+            e[0]['a_shortlog_b'] = e[0]['a_shortlog'];
             e[0]['server_b'] = e[0]['server'];
             result.push(e[0]);
             try { if (e[0].gid()) register.push(e); } catch(e) {};
@@ -572,6 +587,9 @@ function diffhirarchy(a,b,order=[],register=[]) {
             } catch(e) {};
             e1['sha_b'] = e1['sha'];
             e1['sha_a'] = e0['sha'];
+
+            e1['a_shortlog_b'] = e1['a_shortlog'];
+            e1['a_shortlog_a'] = e0['a_shortlog'];
 
             e1['server_b'] = e1['server'];
             e1['server_a'] = e0['server'];

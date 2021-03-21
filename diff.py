@@ -349,7 +349,13 @@ def api():
                         if p == None:
                             p = e.name;
                             #print(server + ": " + p)
-                        pa.append({ 'path' : p, 'server' : server, 'sha' : e.revision});
+
+                        u = urlparse(server)
+                        pa.append({ 'path' : p,
+                                    'server' : server,
+                                    'sha' : e.revision,
+                                    'a_shortlog' : "http://{}:8080/gitweb?p={}.git;a=shortlog;h={}".format(u.hostname, p, e.revision)
+                                   });
 
                     ws.send(json.dumps(update(mfnsel.tohash(), {'type': 'repolist', 'data' : pa})));
 
@@ -357,13 +363,28 @@ def api():
                     repoonoff = selobj(req['data'])
                     try:
                         if (req['data']['onoff'] == "on"):
+                            # for diff calc only serverurl_a is used
                             server = req['data']['server_a'];
                             add = repodiff(server, req['data']['sha_a'], req['data']['sha_b'], localprefix);
                             rem = repodiff(server, req['data']['sha_b'], req['data']['sha_a'], localprefix);
                             branches = repoBranches(server, localprefix);
                             tags = repotags(server, localprefix);
 
-                            ws.send(json.dumps({'type': 'repodiff', 'data' : update(repoonoff.tohash(), {'add' : add, 'rem' : rem, 'branches': branches, 'tags' : tags})}));
+                            u_add = urlparse(server);
+                            u_add_path = u_add.path;
+                            u_add_path = re.sub(r'^/',"",u_add_path);
+
+                            ws.send(json.dumps(
+                                {'type': 'repodiff',
+                                 'data' : update(repoonoff.tohash(),
+                                                 {'add' : add,
+                                                  'add_commitdiff' : "http://{}:8080/gitweb?p={}.git;a=commitdiff;h=[ref]".format(u_add.hostname, u_add_path),
+
+                                                  'rem' : rem,
+                                                  'rem_commitdiff' : "http://{}:8080/gitweb?p={}.git;a=commitdiff;h=[ref]".format(u_add.hostname, u_add_path),
+
+                                                  'branches': branches,
+                                                  'tags' : tags})}));
                     except Exception as e:
                         print("Request:"+str(req));
                         print(str(e));
