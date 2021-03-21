@@ -27,8 +27,11 @@ parser.add_argument('--prepare', action='store_true', help='verbose')
 parser.add_argument('--a', '-a', type=str, default='test/manifest_test_a', help='repo manifest dir a')
 parser.add_argument('--b', '-b', type=str, default='test/manifest_test_b', help='repo manifest dir b')
 parser.add_argument('--workdir', '-w', type=str, default='/tmp/repo_work', help='work directory')
+parser.add_argument('--same', action='store_true', help='Use same workfolder')
 parser.add_argument('repos', nargs='*')
 opt = parser.parse_args()
+
+print(str(opt))
 
 app = Flask(__name__, template_folder=".")
 app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0
@@ -231,8 +234,10 @@ def api():
 
     if request.environ.get('wsgi.websocket'):
         ws = request.environ['wsgi.websocket']
-        localprefix = "%08x"%(randrange(1<<30));
-        print("New user %s" %(localprefix))
+        if opt.same:
+            localprefix="%08x"%(0);
+        else:
+            localprefix = "%08x"%(randrange(1<<30));
         base = os.path.join(workdir, localprefix)
         print("New user %s in '%s'" %(localprefix, base))
         # reset local dir
@@ -246,11 +251,17 @@ def api():
         except:
             pass
 
+        print(str(opt.repos))
+
         repolist = []
         for e in opt.repos:
-            a = e.split(":");
-            n = a.pop();
-            a = ":".join(a);
+            #a = e.split(":");
+            #print(a)
+            #n = a.pop();
+            #a = ":".join(a)
+            n=e
+            a=e
+            print("Try clone '{}'".format(a))
             p = getRepoDir(a, os.path.join(localprefix,n), nomirror=True);
             repolist.append(p);
 
@@ -260,6 +271,13 @@ def api():
             req = json.loads(req)
             print(str(req));
             if (req['type'] == 'start'):
+                if ('addpath' in req):
+                    addpath = req['addpath'].strip();
+                    print("Adding {} as manifest patch".format(addpath))
+                    p = getRepoDir(addpath, localprefix, nomirror=True);
+                    repolist.append(p);
+
+
                 startobj = { };
                 ws.send(json.dumps({'type': 'md', 'data' : [ update(startobj, {'repodir' : e }) for e in repolist]})) #opt.repos
             elif (req['type'] == 'mdsel'):
@@ -336,6 +354,6 @@ def api():
 
 
 if __name__ == '__main__':
-
+    print("Open http://localhost:5000/diff.html")
     http_server = WSGIServer(('0.0.0.0',5000), app, handler_class=WebSocketHandler)
     http_server.serve_forever()

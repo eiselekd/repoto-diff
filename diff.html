@@ -10,11 +10,13 @@
     <script src="files/jquery-ui-1.12.1.custom/external/jquery/jquery.js"></script>
     <script src="files/jquery-ui-1.12.1.custom/jquery-ui.js"></script>
     <script src="files/jquery-treetable/jquery.treetable.js"></script>
+
     <script src="diff.js"></script>
     <link rel="stylesheet" type="text/css" href="diff.css">
     <link rel="stylesheet" type="text/css" href="files/jquery-treetable/css/jquery.treetable.css">
     <link rel="stylesheet" type="text/css" href="files/jquery-treetable/css/jquery.treetable.theme.default.css">
     <link rel="stylesheet" type="text/css" href="http://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
+
     <script type="text/javascript" charset="utf-8">
       $(document).ready(function(){
 	  var cache = {repodiff:{}};
@@ -30,9 +32,11 @@
 	      r = Object.assign(r,v);
 	      return r;
 	  }
-	  
+
 	  if ("WebSocket" in window) {
-	      ws = new WebSocket("ws://" + document.domain + ":5000/api");
+	      var ws = new WebSocket("ws://" + document.domain + ":5000/api");
+
+	      
 	      ws.onclose = function (msg) {
 		  alert("Connection lost, please reload\n");
 	      };
@@ -60,6 +64,11 @@
 		      }
 		      $('#mrdir-0, #mrdir-1').each(e);
 		      //$('#mrdir-0, #mrdir-1').prop('selectedIndex', 0);
+		      
+		      $("#mrdir-0").editableSelect();
+		      $("#mrdir-1").editableSelect();
+
+		      
 		  } else if (obj.type == "mrbranches") {
 		      var idx = 0;
 		      $("#log").html("Manifest repo branches<br><p>"+obj.data.join("<br>\n")+"</p>")
@@ -387,21 +396,32 @@
 	      };
 	      ws.onopen = function () {
 		  ws.send(JSON.stringify({'type': 'start'}));
+		  $('#addbutton').click(function() {
+		      ws.send(JSON.stringify({'type': 'start', 'addpath' : $('#addpath').val()}));
+		  });
 	      }
 
 	  } else {
 	      alert("WebSocket not supported");
 	  }
 
+
+	 
       });
     </script>
   </head>
   <body>
+    https://android.googlesource.com/platform/manifest
+    <input id="addpath" class="diffselectbox" placeholder="Add new manifest repo"></input><button id="addbutton">add</button>
     <table>
       <tr>
 	<th></th>
 	<th>Version From</th>
 	<th>Version To</th>
+      </tr>
+      <tr >
+	<td colspan=3 style="text-align: center; ">
+	</td>
       </tr>
       <tr>
 	<td>

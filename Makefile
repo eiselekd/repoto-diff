@@ -19,9 +19,9 @@ start-server-2:
 
 prep:
 	mkdir -p test/android
-	cd test/android; repo init -u https://android.googlesource.com/platform/manifest;
-	cd test/; ln -s android/.repo/manifests manifest_test_a
-	cd test/; ln -s android/.repo/manifests manifest_test_b
+	cd test/android; curl https://storage.googleapis.com/git-repo-downloads/repo-1 > /tmp/repo; python3 /tmp/repo init -u https://android.googlesource.com/platform/manifest
+	cd test/; ln -sfn android/.repo/manifests manifest_test_a
+	cd test/; ln -sfn android/.repo/manifests manifest_test_b
 
 prep-packages:
 	sudo apt-get install python3-flask
