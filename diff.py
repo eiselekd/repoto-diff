@@ -242,7 +242,8 @@ def api():
         print("New user %s in '%s'" %(localprefix, base))
         # reset local dir
         try:
-            shutil.rmtree(base)
+            if not (opt.same):
+                shutil.rmtree(base)
         except:
             pass
         try:
@@ -253,7 +254,23 @@ def api():
 
         print(str(opt.repos))
 
+        manifestpath = os.path.join(base,"__manifests__")
+        os.makedirs(manifestpath, exist_ok=True)
+        print("Scan manifestpath {}".format(manifestpath))
+
         repolist = []
+        for d in os.listdir(manifestpath):
+            dp = os.path.join(manifestpath, d)
+            gp = os.path.join(dp,".git")
+            print("Examine {} if .git {} exist".format(dp, gp))
+            if os.path.isdir(gp):
+                print("Found preallocated repo {}".format(dp))
+                repolist.append(dp);
+                rv=Repo(dp)
+                for remote in rv.remotes:
+                    remote.fetch()
+
+
         for e in opt.repos:
             #a = e.split(":");
             #print(a)
@@ -276,9 +293,8 @@ def api():
                     if ('addpath' in req):
                         addpath = req['addpath'].strip();
                         print("Adding {} as manifest patch".format(addpath))
-                        p = getRepoDir(addpath, localprefix, nomirror=True);
+                        p = getRepoDir(addpath, manifestpath, nomirror=True);
                         repolist.append(p);
-
 
                     startobj = { };
                     ws.send(json.dumps({'type': 'md', 'data' : [ update(startobj, {'repodir' : e }) for e in repolist]})) #opt.repos

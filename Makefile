@@ -2,9 +2,11 @@
 
 all:
 
-start-server:
+start-server-local:
 	mkdir -p /tmp/repo_work
-	python3 diff.py test/manifest_test_a test/manifest_test_b
+	python3 diff.py --same
+
+#test/manifest_test_a test/manifest_test_b
 
 
 prep2:
@@ -13,7 +15,7 @@ prep2:
 	git clone ssh://eiselekd@localhost:29418/flatten test/flatten_a
 	git clone ssh://eiselekd@localhost:29418/flatten test/flatten_b
 
-start-server-2:
+start-server-others:
 	HOME=$(HOMEDIR) python3 diff.py ssh://eiselekd@localhost:29418/flatten:flatten_a ssh://eiselekd@localhost:29418/flatten:flatten_b
 
 
