@@ -29,4 +29,4 @@ prep:
 prep-packages:
 	sudo apt-get install python3-flask
 	sudo apt install python3-gevent-websocket
-	sudo apt-get install python3-pygit2
+	sudo apt-get install python3-pygit2 python3-git
